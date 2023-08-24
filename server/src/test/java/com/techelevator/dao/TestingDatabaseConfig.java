@@ -6,7 +6,6 @@ import org.springframework.core.io.ClassPathResource;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.SingleConnectionDataSource;
 import org.springframework.jdbc.datasource.init.ScriptUtils;
-
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 import javax.sql.DataSource;
@@ -14,8 +13,8 @@ import java.sql.SQLException;
 import java.util.Objects;
 
 @Configuration
-public class TestingDatabaseConfig {
-
+public class TestingDatabaseConfig
+{
     // To use an existing PostgreSQL database, set the following environment variables.
     // Otherwise, a temporary database will be created on the local machine.
     private static final String DB_HOST =
@@ -38,8 +37,10 @@ public class TestingDatabaseConfig {
 
     /* This method creates the temporary database to be used for the tests. */
     @PostConstruct
-    public void setup() {
-        if (System.getenv("DB_HOST") == null) {
+    public void setup()
+    {
+        if (System.getenv("DB_HOST") == null)
+        {
             adminDataSource = new SingleConnectionDataSource();
             adminDataSource.setUrl("jdbc:postgresql://localhost:5432/postgres");
             adminDataSource.setUsername("postgres");
@@ -53,7 +54,8 @@ public class TestingDatabaseConfig {
     private DataSource ds = null;
     /* Before any tests are run, this method initializes the datasource and populates the testing db. */
     @Bean
-    public DataSource dataSource() throws SQLException {
+    public DataSource dataSource() throws SQLException
+    {
         if (ds != null) return ds;
         SingleConnectionDataSource dataSource = new SingleConnectionDataSource();
         dataSource.setUrl(String.format("jdbc:postgresql://%s:%s/%s", DB_HOST, DB_PORT, DB_NAME));
@@ -74,8 +76,10 @@ public class TestingDatabaseConfig {
 
     /* This method runs after all the tests and removes the temporary database. */
     @PreDestroy
-    public void cleanup() throws SQLException {
-        if (adminDataSource != null) {
+    public void cleanup() throws SQLException
+    {
+        if (adminDataSource != null)
+        {
             adminJdbcTemplate.update("DROP DATABASE \"" + DB_NAME + "\";");
             adminDataSource.getConnection().close();
             adminDataSource.destroy();
