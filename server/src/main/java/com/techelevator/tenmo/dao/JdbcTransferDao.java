@@ -2,11 +2,14 @@ package com.techelevator.tenmo.dao;
 
 import com.techelevator.tenmo.model.Transfer;
 import org.springframework.dao.DataAccessException;
+import org.springframework.dao.DataRetrievalFailureException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.support.rowset.SqlRowSet;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
 
 @Component
 public class JdbcTransferDao
@@ -37,29 +40,65 @@ public class JdbcTransferDao
         try
         {
             newTransferId = jdbcTemplate.queryForObject(sql, Integer.class, senderAccountId, recipientAccountId, transferAmount, transferType);
+            return getTransferById(newTransferId);
         }
         catch (DataAccessException e)
         {
             return null;
         }
+    }
 
-        return new Transfer();
+    public void updateTransferStatus(int transferId, boolean isApproved)
+    {
+        String transferStatus = isApproved ? "Approved" : "Rejected";
+        String sql = "UPDATE transfer\n" +
+                "SET transfer_status = ?\n" +
+                "WHERE transfer_id = ?;";
+
+        int numberOfRowsUpdated = jdbcTemplate.update(sql, transferStatus, transferId);
+        if (numberOfRowsUpdated == 0)
+        {
+            throw new DataRetrievalFailureException("Zero rows affected, expected at least one.");
+        }
     }
 
     public Transfer getTransferById(int transferId)
     {
-        String sql = "";
+        String sql = "SELECT transfer_id, sender_account_id, recipient_account_id, transfer_amount, transfer_date, transfer_status, transfer_type\n" +
+                "FROM transfer\n" +
+                "WHERE transfer_id = ?;";
 
         try
         {
-
+            SqlRowSet rowSet = jdbcTemplate.queryForRowSet(sql, transferId);
+            if (rowSet.next())
+            {
+                return mapRowToTransfer(rowSet);
+            }
+            throw new DataRetrievalFailureException("Transfer not found.");
         }
         catch (DataAccessException e)
         {
             return null;
         }
+    }
 
-        return new Transfer();
+    public List<Transfer> getTransfersForAccount(int accountId)
+    {
+        List<Transfer> accountTransfers = new ArrayList<>();
+
+        String sql = "SELECT transfer_id, sender_account_id, recipient_account_id, transfer_amount, transfer_date, transfer_status, transfer_type\n" +
+                "FROM transfer\n" +
+                "WHERE account_id = ?;";
+
+        SqlRowSet results = jdbcTemplate.queryForRowSet(sql, accountId);
+        while (results.next())
+        {
+            Transfer transfer = mapRowToTransfer(results);
+            accountTransfers.add(transfer);
+        }
+
+        return accountTransfers;
     }
 
     private Transfer mapRowToTransfer(SqlRowSet rowSet)

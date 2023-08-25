@@ -7,7 +7,6 @@ import org.springframework.jdbc.support.rowset.SqlRowSet;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Component;
-import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -83,13 +82,13 @@ public class JdbcUserDao implements UserDao
         try
         {
             newUserId = jdbcTemplate.queryForObject(sql, Integer.class, username, password_hash);
+            JdbcAccountDao accountDao = new JdbcAccountDao(jdbcTemplate);
+            accountDao.createAccount(newUserId);
         }
         catch (DataAccessException e)
         {
             return false;
         }
-
-        // TODO: Create the account record with initial balance
 
         return true;
     }
