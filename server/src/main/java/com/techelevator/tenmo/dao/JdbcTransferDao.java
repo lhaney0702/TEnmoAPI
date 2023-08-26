@@ -12,7 +12,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Component
-public class JdbcTransferDao
+public class JdbcTransferDao implements TransferDao
 {
     private JdbcTemplate jdbcTemplate;
 
@@ -21,6 +21,7 @@ public class JdbcTransferDao
         this.jdbcTemplate = jdbcTemplate;
     }
 
+    @Override
     public Transfer createTransfer(int senderAccountId, int recipientAccountId, BigDecimal transferAmount, String transferType)
     {
         String sql = "INSERT INTO transfer (sender_account_id, recipient_account_id, transfer_amount, transfer_date, transfer_status, transfer_type)\n" +
@@ -62,6 +63,7 @@ public class JdbcTransferDao
         }
     }
 
+    @Override
     public Transfer getTransferById(int transferId)
     {
         String sql = "SELECT transfer_id, sender_account_id, recipient_account_id, transfer_amount, transfer_date, transfer_status, transfer_type\n" +
@@ -83,6 +85,7 @@ public class JdbcTransferDao
         }
     }
 
+    @Override
     public List<Transfer> getTransfersForAccount(int accountId)
     {
         List<Transfer> accountTransfers = new ArrayList<>();

@@ -11,7 +11,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Component
-public class JdbcAccountDao
+public class JdbcAccountDao implements AccountDao
 {
     private JdbcTemplate jdbcTemplate;
 
@@ -20,6 +20,7 @@ public class JdbcAccountDao
         this.jdbcTemplate = jdbcTemplate;
     }
 
+    @Override
     public Account createAccount(int userId)
     {
         String sql = "INSERT INTO account (user_id, balance)\n" +
@@ -39,6 +40,7 @@ public class JdbcAccountDao
 
     }
 
+    @Override
     public Account getAccountById(int accountId)
     {
         String sql = "SELECT account_id, user_id, balance\n" +
@@ -60,6 +62,7 @@ public class JdbcAccountDao
         }
     }
 
+    @Override
     public List<Account> getAccountsForUser(int userId)
     {
         List<Account> userAccounts = new ArrayList<>();
@@ -78,6 +81,7 @@ public class JdbcAccountDao
         return userAccounts;
     }
 
+    @Override
     public BigDecimal getCurrentBalance(int accountId)
     {
         String sql = "SELECT balance\n" +
@@ -87,6 +91,7 @@ public class JdbcAccountDao
         return jdbcTemplate.queryForObject(sql, BigDecimal.class, accountId);
     }
 
+    @Override
     public BigDecimal updateAccountBalance(int accountId, BigDecimal amountToChange)
     {
         String sql = "UPDATE account\n" +
