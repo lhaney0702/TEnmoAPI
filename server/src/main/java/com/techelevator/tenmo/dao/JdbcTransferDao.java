@@ -7,7 +7,6 @@ import org.springframework.dao.DataRetrievalFailureException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.support.rowset.SqlRowSet;
 import org.springframework.stereotype.Component;
-
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
@@ -25,6 +24,7 @@ public class JdbcTransferDao implements TransferDao
     @Override
     public Transfer createTransfer(int senderAccountId, int recipientAccountId, BigDecimal transferAmount, String transferType)
     {
+        JdbcAccountDao accountDao = new JdbcAccountDao(jdbcTemplate);
         if (senderAccountId == recipientAccountId)
         {
             throw new DaoException("User can't send or receive to own account.");
@@ -35,7 +35,6 @@ public class JdbcTransferDao implements TransferDao
         }
         if (transferType.equals("Sent"))
         {
-            JdbcAccountDao accountDao = new JdbcAccountDao(jdbcTemplate);
             BigDecimal currentBalance = accountDao.getCurrentBalance(senderAccountId);
             if (currentBalance.doubleValue() < transferAmount.doubleValue())
             {
@@ -60,6 +59,11 @@ public class JdbcTransferDao implements TransferDao
         try
         {
             newTransferId = jdbcTemplate.queryForObject(sql, Integer.class, senderAccountId, recipientAccountId, transferAmount, transferStatus, transferType);
+            if (transferType.equals("Sent"))
+            {
+                accountDao.updateAccountBalance(senderAccountId, transferAmount.multiply(BigDecimal.valueOf(-1)));
+                accountDao.updateAccountBalance(recipientAccountId, transferAmount);
+            }
             return getTransferById(newTransferId);
         }
         catch (DataAccessException e)
@@ -68,6 +72,7 @@ public class JdbcTransferDao implements TransferDao
         }
     }
 
+    @Override
     public void updateTransferStatus(int transferId, boolean isApproved)
     {
         String transferStatus = isApproved ? "Approved" : "Rejected";
@@ -85,7 +90,9 @@ public class JdbcTransferDao implements TransferDao
     @Override
     public Transfer getTransferById(int transferId)
     {
-        String sql = "SELECT transfer_id, sender_account_id, recipient_account_id, transfer_amount, transfer_date, transfer_status, transfer_type\n" +
+        String sql = "SELECT transfer_id, sender_account_id, recipient_account_id, transfer_amount, transfer_date, transfer_status, transfer_type, \n" +
+                "(SELECT username FROM user JOIN account ON account.user_id = user.user_id WHERE account_id = sender_account_id) AS sender_username, \n" +
+                "(SELECT username FROM user JOIN account ON account.user_id = user.user_id WHERE account_id = recipient_account_id) AS recipient_username\n" +
                 "FROM transfer\n" +
                 "WHERE transfer_id = ?;";
 
@@ -109,9 +116,11 @@ public class JdbcTransferDao implements TransferDao
     {
         List<Transfer> accountTransfers = new ArrayList<>();
 
-        String sql = "SELECT transfer_id, sender_account_id, recipient_account_id, transfer_amount, transfer_date, transfer_status, transfer_type\n" +
+        String sql = "SELECT transfer_id, sender_account_id, recipient_account_id, transfer_amount, transfer_date, transfer_status, transfer_type, \n" +
+                "(SELECT username FROM user JOIN account ON account.user_id = user.user_id WHERE account_id = sender_account_id) AS sender_username, \n" +
+                "(SELECT username FROM user JOIN account ON account.user_id = user.user_id WHERE account_id = recipient_account_id) AS recipient_username\n" +
                 "FROM transfer\n" +
-                "WHERE account_id = ?;";
+                "WHERE sender_account_id = ? OR recipient_account_id = ?;";
 
         SqlRowSet results = jdbcTemplate.queryForRowSet(sql, accountId);
         while (results.next())
@@ -121,6 +130,27 @@ public class JdbcTransferDao implements TransferDao
         }
 
         return accountTransfers;
+    }
+
+    @Override
+    public List<Transfer> getTransfersForUser(String username)
+    {
+        List<Transfer> userTransfers = new ArrayList<>();
+
+        String sql = "SELECT transfer_id, sender_account_id, recipient_account_id, transfer_amount, transfer_date, transfer_status, transfer_type, \n" +
+                "(SELECT username FROM user JOIN account ON account.user_id = user.user_id WHERE account_id = sender_account_id) AS sender_username, \n" +
+                "(SELECT username FROM user JOIN account ON account.user_id = user.user_id WHERE account_id = recipient_account_id) AS recipient_username\n" +
+                "FROM transfer\n" +
+                "WHERE sender_account_id IN (SELECT account_id FROM account JOIN user ON user.user_id = account.user_id WHERE user.username = ?);";
+
+        SqlRowSet results = jdbcTemplate.queryForRowSet(sql, username);
+        while (results.next())
+        {
+            Transfer transfer = mapRowToTransfer(results);
+            userTransfers.add(transfer);
+        }
+
+        return userTransfers;
     }
 
     private Transfer mapRowToTransfer(SqlRowSet rowSet)
@@ -133,6 +163,8 @@ public class JdbcTransferDao implements TransferDao
         transfer.setTransferDate(rowSet.getDate("transfer_date"));
         transfer.setTransferStatus(rowSet.getString("transfer_status"));
         transfer.setTransferType(rowSet.getString("transfer_type"));
+        transfer.setSenderUsername(rowSet.getString("sender_username"));
+        transfer.setRecipientUsername(rowSet.getString("recipient_username"));
         return transfer;
     }
 }

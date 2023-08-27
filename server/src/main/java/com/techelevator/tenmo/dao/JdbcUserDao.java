@@ -7,6 +7,7 @@ import org.springframework.jdbc.support.rowset.SqlRowSet;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Component;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -91,6 +92,16 @@ public class JdbcUserDao implements UserDao
         }
 
         return true;
+    }
+
+    public BigDecimal getBalanceForUser(String username)
+    {
+        String sql = "SELECT SUM(balance)\n" +
+                "FROM account\n" +
+                "JOIN user ON user.user_id = account.user_id\n" +
+                "WHERE user.username = ?;";
+
+        return jdbcTemplate.queryForObject(sql, BigDecimal.class, username);
     }
 
     private User mapRowToUser(SqlRowSet rs)

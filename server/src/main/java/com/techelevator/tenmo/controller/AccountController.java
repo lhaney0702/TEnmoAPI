@@ -1,98 +1,76 @@
 package com.techelevator.tenmo.controller;
 
 import com.techelevator.tenmo.dao.AccountDao;
-import com.techelevator.tenmo.exception.DaoException;
+import com.techelevator.tenmo.dao.UserDao;
 import com.techelevator.tenmo.model.Account;
+import com.techelevator.tenmo.model.UserBalanceDTO;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
-
 import javax.validation.Valid;
 import java.math.BigDecimal;
+import java.security.Principal;
 import java.util.List;
 
+@RestController
 public class AccountController
 {
     private AccountDao accountDao;
+    private UserDao userDao;
 
-    public AccountController(AccountDao accountDao){
+    public AccountController(AccountDao accountDao, UserDao userDao)
+    {
         this.accountDao = accountDao;
+        this.userDao = userDao;
     }
-
-
 
     // create account
     @ResponseStatus(HttpStatus.CREATED)
-    @RequestMapping(path = "/accounts", method = RequestMethod.POST)
-    public Account createAccountByInputID(@Valid @RequestBody int userId)
+    @RequestMapping(path = "/accounts/create", method = RequestMethod.POST)
+    public Account createAccountForUser(@Valid @RequestBody int userId)
     {
         return accountDao.createAccount(userId);
     }
 
-
-
-
     // get account by account ID
+    @PreAuthorize("isAuthenticated()")
     @RequestMapping(path = "/accounts/{id}", method = RequestMethod.GET)
     public Account getAccountByAccountId(@PathVariable int accountId)
     {
         Account account = accountDao.getAccountById(accountId);
-        if (account == null){
+        if (account == null)
+        {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Account not found.");
-        } else {
+        }
+        else
+        {
             return account;
         }
     }
 
-
-
-
-    // get accounts by user ID
-    @RequestMapping(path = "/users/{id}/accounts", method = RequestMethod.GET)
-    public List<Account> getAccountsByUserId(@PathVariable("id") int userId)
+    // get accounts for user
+    @PreAuthorize("isAuthenticated()")
+    @RequestMapping(path = "/user/accounts", method = RequestMethod.GET)
+    public List<Account> getAccountsForUser(Principal principal)
     {
-        List<Account> accounts = accountDao.getAccountsForUser(userId);
-        if (accounts == null) {
+        List<Account> accounts = accountDao.getAccountsForUser(userDao.findIdByUsername(principal.getName()));
+        if (accounts == null)
+        {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Account(s) not found.");
-        } else {
+        }
+        else
+        {
             return accounts;
         }
     }
 
-
-
-
-    // get current bal
+    // get current balance
     @PreAuthorize("isAuthenticated()")
-    @RequestMapping(path = "/accounts/{id}/balance", method = RequestMethod.GET)
-    public BigDecimal getCurrentBalanceByAccountId(@Valid @PathVariable int accountId)
+    @RequestMapping(path = "/accounts/balance", method = RequestMethod.GET)
+    public UserBalanceDTO getCurrentBalance(Principal principal)
     {
-        Account account = accountDao.getAccountById(accountId);
-        if (account == null){
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Account not found.");
-        } else {
-            return account.getBalance();
-        }
+        BigDecimal userBalance = userDao.getBalanceForUser(principal.getName());
+        return new UserBalanceDTO(principal.getName(), userBalance);
     }
-
-
-
-
-    // update bal
-    @RequestMapping(path = "/accounts/{id}", method = RequestMethod.PUT)
-    public BigDecimal updateAccountBalanceByAccountIdAndMoneyInput
-        (@Valid @RequestBody Account account,
-        @PathVariable int accountId, BigDecimal amountToChange)
-    {
-        account.setAccountId(accountId);
-        try {
-            BigDecimal updatedAccount = accountDao.updateAccountBalance(accountId, amountToChange);
-            return updatedAccount;
-        }
-        catch (DaoException e) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Account not found.");
-        }
-    }
-
 }

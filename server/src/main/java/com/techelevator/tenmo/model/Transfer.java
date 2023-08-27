@@ -12,6 +12,8 @@ public class Transfer
     private Date transferDate;
     private String transferStatus;
     private String transferType;
+    private String senderUsername;
+    private String recipientUsername;
 
     public Transfer()
     {
@@ -97,5 +99,25 @@ public class Transfer
     public void setTransferType(String transferType)
     {
         this.transferType = transferType;
+    }
+
+    public String getSenderUsername()
+    {
+        return senderUsername;
+    }
+
+    public void setSenderUsername(String senderUsername)
+    {
+        this.senderUsername = senderUsername;
+    }
+
+    public String getRecipientUsername()
+    {
+        return recipientUsername;
+    }
+
+    public void setRecipientUsername(String recipientUsername)
+    {
+        this.recipientUsername = recipientUsername;
     }
 }
