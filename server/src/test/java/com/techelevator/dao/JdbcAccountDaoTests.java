@@ -16,11 +16,11 @@ public class JdbcAccountDaoTests extends BaseDaoTests
     private JdbcAccountDao dao;
     private Account testAccount;
 
-    private final Account ACCOUNT_1 = new Account(1, 1, BigDecimal.valueOf(1000.00));
-    private final Account ACCOUNT_2 = new Account(2, 1, BigDecimal.valueOf(1000.00));
+    private final Account ACCOUNT_1 = new Account(2001, 1, BigDecimal.valueOf(1000.00));
+    private final Account ACCOUNT_2 = new Account(2002, 1, BigDecimal.valueOf(1000.00));
 
-    private final Account ACCOUNT_3 = new Account(3, 2, BigDecimal.valueOf(1000.00));
-    private final Account ACCOUNT_4 = new Account(4, 2, BigDecimal.valueOf(1000.00));
+    private final Account ACCOUNT_3 = new Account(2003, 2, BigDecimal.valueOf(1000.00));
+    private final Account ACCOUNT_4 = new Account(2004, 2, BigDecimal.valueOf(1000.00));
 
     @Before
     public void setup()
